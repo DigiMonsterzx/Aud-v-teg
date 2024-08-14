@@ -101,7 +101,7 @@ def create_app():
     application.add_handler(CallbackQueryHandler(confirm_voice, pattern="^(ar-.+Neural)$"))
     application.add_handler(CallbackQueryHandler(process_audio, pattern="^(yes|no)$"))
 
-     return application
+    return application
 
 app = create_app()
 
