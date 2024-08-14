@@ -6,6 +6,7 @@ from docx import Document
 import edge_tts
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackQueryHandler
+from flask import Flask
 
 # Configure Cloudinary
 cloudinary.config(
@@ -18,6 +19,12 @@ VOICES = {
     "male": ["ar-DZ-IsmaelNeural", "ar-AE-HamdanNeural"],
     "female": ["ar-DZ-AminaNeural", "ar-AE-FatimaNeural"]
 }
+
+# Flask app
+flask_app = Flask(__name__)
+
+# Telegram bot app
+telegram_app = None
 
 async def start(update: Update, context):
     await update.message.reply_text("Welcome! Please upload a Word document to begin.")
@@ -103,6 +110,13 @@ def create_app():
 
     return application
 
+@flask_app.route('/')
+def index():
+    global telegram_app
+    if telegram_app is None:
+        telegram_app = create_app()
+        telegram_app.run_polling()
+    return "Telegram bot is running!"
+
 if __name__ == "__main__":
-    app = create_app()
-    app.run_polling()
+    flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
