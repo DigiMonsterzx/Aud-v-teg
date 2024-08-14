@@ -39,7 +39,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     document = update.message.document
-    file_path = await document.get_file().download()
+    file = await document.get_file()  # Await the coroutine to get the File object
+    file_path = await file.download()
 
     context.user_data['document'] = file_path
     keyboard = [
