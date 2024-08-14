@@ -1,18 +1,25 @@
 import os
+import logging
 import asyncio
 import cloudinary
 import cloudinary.uploader
 from docx import Document
 import edge_tts
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackQueryHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 from flask import Flask
+
+# Configure logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
 # Configure Cloudinary
 cloudinary.config(
-    cloud_name="dyzeagpkw",
-    api_key="737729173351875",
-    api_secret="CgHVO1-0SP8Hl3aYwKj3dA6HWwU"
+    cloud_name=os.getenv("dyzeagpkw"),
+    api_key=os.getenv("737729173351875"),
+    api_secret=os.getenv("CgHVO1-0SP8Hl3aYwKj3dA6HWwU")
 )
 
 VOICES = {
@@ -23,13 +30,10 @@ VOICES = {
 # Flask app
 flask_app = Flask(__name__)
 
-# Telegram bot app
-telegram_app = None
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome! Please upload a Word document to begin.")
 
-async def start(update: Update, context):
-    await update.message.reply_text("Welcome! Please upload a Word document to begin.")
-
-async def handle_document(update: Update, context):
+async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     document = update.message.document
     file_path = await document.get_file().download()
 
@@ -38,9 +42,9 @@ async def handle_document(update: Update, context):
         [InlineKeyboardButton("Male", callback_data='male')],
         [InlineKeyboardButton("Female", callback_data='female')],
     ]
-    await update.message.reply_text("Please choose a voice type:", reply_markup=InlineKeyboardMarkup(keyboard))
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Please choose a voice type:", reply_markup=InlineKeyboardMarkup(keyboard))
 
-async def voice_selection(update: Update, context):
+async def voice_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     voice_type = query.data
@@ -51,7 +55,7 @@ async def voice_selection(update: Update, context):
     ]
     await query.edit_message_text("Please choose a specific voice:", reply_markup=InlineKeyboardMarkup(keyboard))
 
-async def confirm_voice(update: Update, context):
+async def confirm_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     selected_voice = query.data
@@ -63,7 +67,7 @@ async def confirm_voice(update: Update, context):
     ]
     await query.edit_message_text(f"Do you want to proceed with the {selected_voice} voice?", reply_markup=InlineKeyboardMarkup(keyboard))
 
-async def process_audio(update: Update, context):
+async def process_audio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
@@ -78,29 +82,40 @@ async def process_audio(update: Update, context):
         text = extract_text(document_path)
         await save_text_to_audio(text, voice, output_file)
         
-        # Upload to Cloudinary
-        response = cloudinary.uploader.upload_large(output_file, resource_type="video")
-        url = response.get('secure_url', '')
+        try:
+            # Upload to Cloudinary
+            response = cloudinary.uploader.upload_large(output_file, resource_type="raw")
+            url = response.get('secure_url', '')
 
-        if url:
-            await query.message.reply_text(f"Congratulations! Here is your audio file: {url}")
-        else:
-            await query.message.reply_text("Sorry, there was an error uploading your file.")
+            if url:
+                await query.message.reply_text(f"Congratulations! Here is your audio file: {url}")
+            else:
+                await query.message.reply_text("Sorry, there was an error uploading your file.")
+        except Exception as e:
+            logging.error(f"Error uploading file: {e}")
+            await query.message.reply_text(f"An error occurred: {e}")
     else:
         await query.edit_message_text("Operation canceled.")
 
 # Additional functions to extract text and save as audio
 def extract_text(doc_path):
-    doc = Document(doc_path)
-    full_text = [paragraph.text for paragraph in doc.paragraphs]
-    return '\n'.join(full_text)
+    try:
+        doc = Document(doc_path)
+        full_text = [paragraph.text for paragraph in doc.paragraphs]
+        return '\n'.join(full_text)
+    except Exception as e:
+        logging.error(f"Error extracting text: {e}")
+        return ""
 
 async def save_text_to_audio(text, voice, output_file):
-    communicate = edge_tts.Communicate(text, voice)
-    await communicate.save(output_file)
+    try:
+        communicate = edge_tts.Communicate(text, voice)
+        await communicate.save(output_file)
+    except Exception as e:
+        logging.error(f"Error saving text to audio: {e}")
 
 def create_app():
-    application = ApplicationBuilder().token("7177528306:AAHvxpSnUZUURwWH_QdzVeDLig-CxboBskk").build()
+    application = ApplicationBuilder().token(os.getenv("7177528306:AAHvxpSnUZUURwWH_QdzVeDLig-CxboBskk")).build()
     
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.Document.ALL, handle_document))
