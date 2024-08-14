@@ -92,7 +92,7 @@ async def save_text_to_audio(text, voice, output_file):
     communicate = edge_tts.Communicate(text, voice)
     await communicate.save(output_file)
 
-if __name__ == "__main__":
+def create_app():
     application = ApplicationBuilder().token("7177528306:AAHvxpSnUZUURwWH_QdzVeDLig-CxboBskk").build()
     
     application.add_handler(CommandHandler("start", start))
@@ -101,4 +101,9 @@ if __name__ == "__main__":
     application.add_handler(CallbackQueryHandler(confirm_voice, pattern="^(ar-.+Neural)$"))
     application.add_handler(CallbackQueryHandler(process_audio, pattern="^(yes|no)$"))
 
-    application.run_polling()
+     return application
+
+app = create_app()
+
+if __name__ == "__main__":
+    app.run_polling()
