@@ -119,7 +119,7 @@ async def save_text_to_audio(text, voice, output_file):
         logging.error(f"Error saving text to audio: {e}")
 
 def create_app():
-    application = ApplicationBuilder().token(os.getenv("AAHvxpSnUZUURwWH_QdzVeDLig-CxboBskk")).build()
+    application = ApplicationBuilder().token(os.getenv("TELEGRAM_BOT_TOKEN")).build()
     
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.Document.ALL, handle_document))
