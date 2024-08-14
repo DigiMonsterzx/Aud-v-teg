@@ -30,6 +30,10 @@ VOICES = {
 # Flask app
 flask_app = Flask(__name__)
 
+
+# Define telegram_app globally
+telegram_app = None
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome! Please upload a Word document to begin.")
 
