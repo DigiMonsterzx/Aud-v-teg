@@ -2,4 +2,4 @@ cloudinary
 python-telegram-bot
 python-docx
 edge-tts
-gunicorn
+
