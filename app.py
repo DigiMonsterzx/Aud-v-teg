@@ -8,10 +8,11 @@ import edge_tts
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 from flask import Flask
+from subprocess import Popen
 
 # Configure logging
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(asctime)s - %(name)s - %(levelname)s',
     level=logging.INFO
 )
 
@@ -29,7 +30,6 @@ VOICES = {
 
 # Flask app
 flask_app = Flask(__name__)
-
 
 # Define telegram_app globally
 telegram_app = None
@@ -133,10 +133,14 @@ def create_app():
 @flask_app.route('/')
 def index():
     global telegram_app
-    if telegram_app is None:
+    if (telegram_app is None):
         telegram_app = create_app()
         telegram_app.run_polling()
-    return "Telegram bot is running!"
+
+    # Start LocalTunnel and expose the local Flask app
+    Popen(["lt", "--port", "5000", "--subdomain", ""])
+
+    return "Telegram bot is running and accessible via LocalTunnel!"
 
 if __name__ == "__main__":
     flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
